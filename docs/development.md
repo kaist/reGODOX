@@ -68,7 +68,10 @@ missing dynamically loaded modules or an incompatible host PE.
 Windows CI uses uv throughout. Packaging requires six golden firmware hashes and
 successful EXE smoke reports. ZIP timestamps are stable; EXEs are not promised
 byte-identical between machines. Tags `v*` publish release assets after checks;
-branches/PRs only upload Actions artifacts. CI never flashes hardware.
+branches/PRs only upload Actions artifacts. Manual runs expose a boolean
+`publish_release` checkbox. When selected, a successful build publishes
+`build-<run number>` targeting the exact workflow SHA; reruns update that release.
+Without the checkbox, manual runs produce artifacts only. CI never flashes hardware.
 
 `tools/capture_screenshots.py` captures real Windows application windows. Feature
 frames are native LVGL renders. Keep both READMEs and screenshots current.

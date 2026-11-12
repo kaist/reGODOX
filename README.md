@@ -168,7 +168,12 @@ Windows settings are untouched. Actual EXEs must pass smoke tests before packagi
 
 [GitHub Actions](.github/workflows/build.yml) tests source and native behavior,
 builds all firmware and both EXEs, and assembles `dist/release/`. Branch/PR builds
-upload artifacts. Pushing a **`v*` tag** publishes a GitHub Release with both EXEs,
+upload artifacts. To publish manually, open **Actions → Build and release →
+Run workflow**, check **Publish GitHub Release**, and start the workflow. After
+successful checks and builds it publishes a `build-<run number>` release for the
+selected commit. Leave the checkbox unchecked to build artifacts only.
+
+Pushing a **`v*` tag** also publishes a GitHub Release with both EXEs,
 the firmware ZIP, combined Windows bundle, both READMEs, license notices and
 `SHA256SUMS`. No manual attachments needed:
 

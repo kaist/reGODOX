@@ -139,8 +139,10 @@ virtual flash dumps and crash logs out of documentation and git.
 
 Local builds, tests and reversible edits are routine. Do not push to GitHub,
 create releases or publish packages unless the user asks. The configured CI
-publishes GitHub Releases on pushed `v*` tags as requested. Branches and PRs only
-upload artifacts. No path automatically flashes a device.
+publishes GitHub Releases on pushed `v*` tags or manual runs with the
+`publish_release` checkbox enabled. Manual releases use `build-<run number>` and
+target the workflow SHA. Branches, PRs and unchecked manual runs only upload
+artifacts. No path automatically flashes a device.
 Firmware originals remain third-party material and are not covered by the
 project's MIT license. Keep the third-party notice and both language guides.
 
