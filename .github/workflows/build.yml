@@ -1,0 +1,121 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_LINK_MODE: copy
+  PYTHONNOUSERSITE: '1'
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.11.21'
+          enable-cache: true
+      - run: uv sync --frozen --all-groups --python python
+      - run: uv run --frozen --all-groups ruff check src tests tools
+      - run: uv run --frozen --all-groups pytest -q --junitxml=build/tests.xml
+      - run: uv run --frozen regodox build-all --output-dir dist/firmware
+      - uses: actions/upload-artifact@v4
+        with:
+          name: regodox-firmware
+          path: dist/firmware/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: build/tests.xml
+
+  windows:
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.11.21'
+          enable-cache: true
+      - run: uv run --frozen --no-default-groups python tools/build_windows.py --app both
+      - run: uv run --frozen --no-default-groups python tools/smoke_executables.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: regodox-windows
+          path: dist/windows/
+          if-no-files-found: error
+
+  package:
+    needs: [validate, windows]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.11.21'
+      - uses: actions/download-artifact@v4
+        with:
+          name: regodox-firmware
+          path: dist/firmware
+      - uses: actions/download-artifact@v4
+        with:
+          name: regodox-windows
+          path: dist/windows
+      - run: uv run --frozen --no-default-groups python tools/package_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: regodox-release
+          path: dist/release/
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: regodox-release
+          path: dist/release
+      - name: Publish versioned GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          gh release view "$tag" --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "$tag" --verify-tag --title "reGODOX $tag" --generate-notes --repo "$env:GITHUB_REPOSITORY"
+            if ($LASTEXITCODE -ne 0) { throw 'Release creation failed.' }
+          }
+          $assets = Get-ChildItem -LiteralPath dist/release -File | ForEach-Object { $_.FullName }
+          gh release upload "$tag" @assets --clobber --repo "$env:GITHUB_REPOSITORY"
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed.' }

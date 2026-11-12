@@ -1,0 +1,42 @@
+[project]
+name = "regodox"
+version = "0.1.0"
+description = "Custom firmware patcher and native UI emulator for Godox X3 triggers"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = "MIT"
+dependencies = [
+    "Pillow==12.0.0",
+    "ttkbootstrap==1.20.3",
+]
+
+[project.scripts]
+regodox = "regodox.cli:main"
+
+[project.gui-scripts]
+regodox-gui = "regodox.gui:main"
+regodox-emulator = "regodox.emulator.app:main"
+
+[dependency-groups]
+emulator = ["capstone==5.0.9", "unicorn==2.1.4"]
+build = ["pyinstaller==6.16.0"]
+dev = ["pytest>=8.3,<10", "ruff>=0.11,<1"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/regodox"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:faulthandler"
+markers = ["native: executes real ARM/LVGL code in Unicorn", "gui: requires Tk and a display"]
+
+[tool.ruff]
+line-length = 110
+exclude = ["firmware/src", "src/regodox/emulator/cores"]
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]

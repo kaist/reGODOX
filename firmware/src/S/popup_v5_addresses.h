@@ -1,0 +1,4 @@
+#define ASM_CAPTURE 0x080ed92eu
+#define ASM_APPLY 0x080ed986u
+#define ASM_CALLBACK 0x080ed864u
+#define ASM_STOCK_SAVE 0x080edab8u
